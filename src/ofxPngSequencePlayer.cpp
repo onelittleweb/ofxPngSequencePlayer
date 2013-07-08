@@ -66,7 +66,9 @@ bool ofxPngSequencePlayer::loadMovie(string _folder){
 void ofxPngSequencePlayer::close(){
 	stop();
 	folder.close();
-    drawTexture->clear();
+    if(drawTexture != NULL) {
+        if (drawTexture->bAllocated()) drawTexture->clear();
+    }
 	//soundPlayer.unloadSound();
 }
 
@@ -85,18 +87,19 @@ void ofxPngSequencePlayer::play()
 	currentFrame = 0;
 	lastFrameTime = ofGetElapsedTimeMillis();
 	startThread(true,false);
-	//soundPlayer.play();
 	bPlaying = true;
 }
 
 void ofxPngSequencePlayer::stop(){
-	currentFrame = 0;
-	//soundPlayer.stop();
-	waitForThread(true);
-	pixels.set(0);
+	
+	//waitForThread(true);
+    bPlaying = false;
+	stopThread();
+    currentFrame = 0;
+    pixels.set(0);
 	while(!frames.empty()) frames.pop();
-	bPlaying = false;
 	isNewFrame = true;
+
 }
 
 void ofxPngSequencePlayer::update(){
@@ -113,13 +116,14 @@ bool ofxPngSequencePlayer::isFrameNew(){
 }
 
 void ofxPngSequencePlayer::threadedFunction(){
+   
 	while(isThreadRunning()){
+        if(!bPlaying) return;
         if(frames.size()<10 && currentFrame+frames.size()+1<getTotalNumFrames()){
 			frames.push(ofPixels());
 			ofLoadImage(frames.back(),folder.getPath(currentFrame+frames.size()));
 		}
-
-		if(frames.empty()) return;
+        if(frames.empty()) return;
 		int currentTime = ofGetElapsedTimeMillis();
 		int diff = currentTime - lastFrameTime;
 		if(diff>=oneFrameTime){
